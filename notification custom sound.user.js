@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Notification
+// @name         Notification custom sound
 // @namespace    http://tampermonkey.net/
 // @version      2026-05-15
 // @description  try to take over the world!
