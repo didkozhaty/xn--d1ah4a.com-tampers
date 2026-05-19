@@ -172,11 +172,6 @@ const setNotifCount = newCount => {
     }
     count = newCount;
 }
-const patchSubs = (response) => patchFuncResult(response, "json", result => result.then(json => {
-    json.followersCount = 0;
-    console.log(json)
-    return json;
-}))
 const patchRead = response => patchFuncResult(response, "json", result => result.then(json => {
     if(json.success)
         setNotifCount(count-1)
@@ -186,9 +181,7 @@ const readUrl = /\/api\/notifications\/[0-9A-z-]+\/read/
 const patchers = {
     "/api/notifications/stream": patchStream,
     "/api/notifications/count": patchNotifCount,
-    "/api/v1/auth/refresh": patchRefresh,
-    "/api/users/me": patchSubs,
-    "/api/users/didkozhaty": patchSubs
+    "/api/v1/auth/refresh": patchRefresh
 };
 const getPatcher = (url) => patchers[url] ?? (readUrl.test(url) ? patchRead : null);
 (function() {
