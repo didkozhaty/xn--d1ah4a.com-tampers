@@ -162,6 +162,8 @@ function patchNotifPage() {
     })
 }
 const setNotifCount = newCount => {
+    if(newCount < 0)
+        return authFetch("/api/notifications/count").then(r => r.json()).then(json => setNotifCount(json.count))
     counter.textContent = newCount > 99 ? '+99' : newCount;
     if(newCount === 0) {
         counter.style.display = 'none'
