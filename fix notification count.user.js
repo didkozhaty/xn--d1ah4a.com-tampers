@@ -31,7 +31,7 @@ let readPromise;
 let resolveMessage;
 let messages = [];
 let messageResolve;
-const addMessage = (msg) => { 
+const addMessage = (msg) => {
     const msgFormatted = typeof msg === "object" && 'done' in msg ? msg : {value: typeof msg === "string" ? encoder.encode(msg) : msg, done: false}
     if(messageResolve)
         return messageResolve(msgFormatted);
@@ -46,6 +46,7 @@ const getMessage = (readFunc) => new Promise(resolve => {
 const patchStream = (response) => {
     if(!response.body)
         return response;
+    console.log("cherry cherry lady")
     patchFuncResult(response.body, "getReader", reader => patchFunc(reader, "read", async read => getMessage(read).then(data => {
         const {done, value} = data;
         const decoded = decoder.decode(value)
@@ -177,11 +178,17 @@ const patchRead = response => patchFuncResult(response, "json", result => result
         setNotifCount(count-1)
     return json;
 }))
+const patchReadBatch = response => patchFuncResult(response, "json", result => result.then(json => {
+    if(json.success)
+        setNotifCount(count-json.count)
+    return json;
+}))
 const readUrl = /\/api\/notifications\/[0-9A-z-]+\/read/
 const patchers = {
     "/api/notifications/stream": patchStream,
     "/api/notifications/count": patchNotifCount,
-    "/api/v1/auth/refresh": patchRefresh
+    "/api/v1/auth/refresh": patchRefresh,
+    "/api/notifications/read-batch": patchReadBatch
 };
 const getPatcher = (url) => patchers[url] ?? (readUrl.test(url) ? patchRead : null);
 (function() {
@@ -198,5 +205,5 @@ const getPatcher = (url) => patchers[url] ?? (readUrl.test(url) ? patchRead : nu
         return result;
     })
     window.setNotifCount = setNotifCount;
-    window.addFakeMessage = (msg) => addMessage(encoder.encode(msg)); // system for fake messages from eventstream. i didn't proceed to figure out how to make them work, you may, let me know 
+    window.addFakeMessage = (msg) => addMessage(encoder.encode(msg));
 })();
