@@ -49,7 +49,7 @@ const patchStream = (response) => {
     console.log("cherry cherry lady")
     patchFuncResult(response.body, "getReader", reader => patchFunc(reader, "read", async read => getMessage(read).then(data => {
         const {done, value} = data;
-        const decoded = decoder.decode(value)
+        const decoded = decoder.decode(new Uint8Array(value))
         console.log({done, value: decoded});
         notificationHandler(decoded);
         return data
@@ -58,31 +58,44 @@ const patchStream = (response) => {
 }
 const headerLength = 26 // `event: notification\ndata: `.length
 let root;
+const notifToastClick = id => (e => {
+    console.log(e)
+    authFetch(`\/api\/notifications\/${id}/read`, {
+        method: "POST"
+    }).then(() => setNotifCount(count-1))
+    console.log(`read ${id}`)
+});
+const fixNotifToast = toast => {
+    const id = notifications.shift()
+    toast.setAttribute('notif-id', id)
+    toast.addEventListener('mousedown', notifToastClick(id))
+    console.log(id)
+}
+let notifContainerFather;
 const notificationContainerGetObserver = new MutationObserver(muts => {
     const mut = muts.find(mut => mut.addedNodes.length);
-    notifContainer = mut.addedNodes[0];
+    notifContainerFather = mut.addedNodes[0];
+    notifContainer = notifContainerFather.firstChild;
     notificationContainerGetObserver.disconnect();
-    notificationContainerObserver.observe(notifContainer.firstChild, {childList:true})
+    notificationContainerObserver.observe(notifContainer, { childList:true })
+    notifContainer.childNodes.forEach(node => fixNotifToast(node))
 })
-const notificationContainerObserver = new MutationObserver(muts => {
-    muts.forEach(mut => mut.addedNodes.forEach(node => {
-        node.setAttribute('notif-id', notifications.shift())
-        node.addEventListener('click', () => authFetch(`\/api\/notifications\/${node.getAttribute('notif-id')}/read`, {
-            method: "POST"
-        }))
-    }))
-})
+const notificationContainerObserver = new MutationObserver(muts => muts
+    .forEach(mut => mut.addedNodes
+        .forEach(node => fixNotifToast(node)
+)))
 let notifContainer;
 const notifications = [];
 const notificationHandler = (notif) => {
     if(!notif.startsWith('event: notification\n'))
         return;
+    debugger
     setNotifCount(count+1)
     const notification = JSON.parse(notif.substring(26))
     notifications.push(notification.id)
-    if(notifContainer && notifContainer.parentNode)
+    if(notifContainerFather && notifContainerFather.parentNode)
         return;
-    notificationContainerGetObserver.observe()
+    notificationContainerGetObserver.observe(root, {childList: true})
 }
 let count;
 const patchNotifCount = (response) => {
